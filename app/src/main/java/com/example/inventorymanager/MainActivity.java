@@ -1,54 +1,39 @@
 package com.example.inventorymanager;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.FileProvider;
-
 import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.StrictMode;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
-import java.sql.Date;
 
-import com.google.android.gms.auth.api.signin.internal.Storage;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
+
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-import static android.os.Environment.getExternalStoragePublicDirectory;
-
 public class MainActivity extends AppCompatActivity {
     public static TextView resultTextView;
-    private Button scanButton, firstPictureButton;
-    private ImageView imageView;
-
-    private static final int CAMERA_REQUEST_CODE = 1;
-    private StorageReference mStorageRef;
-    private ProgressDialog mProgressRef;
-    static final int REQUEST_IMAGE_CAPTURE = 1;
-
-    String pathToFile;
+    public static ImageView imageView;
+    private Button scanButton;
+    private Button firstPictureButton;
+    private final int REQUEST = 1;
+    private String pathToFile;
+    private File image;
 
 
     @Override
@@ -65,9 +50,9 @@ public class MainActivity extends AppCompatActivity {
         firstPictureButton = findViewById(R.id.firstPicButton);
         imageView = findViewById(R.id.imageView);
 
-        mStorageRef = FirebaseStorage.getInstance().getReference();
+        //mStorageRef = FirebaseStorage.getInstance().getReference();
 
-        mProgressRef = new ProgressDialog(this);
+        //mProgressRef = new ProgressDialog(this);
 
         scanButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -76,36 +61,42 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
+        firstPictureButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivity(new Intent(getApplicationContext(), PhotoActivity.class));
+            }
+        });
+        /*
         firstPictureButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 dispatchTakePictureIntent();
             }
         });
-
+         */
     }
-
-    static final int REQUEST_TAKE_PHOTO = 1;
-
+    /*
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        // Ensure that there's a camera activity to handle the intent
+        // Make sure there's camera activity to handle the camera intent
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            // Create the File where the photo should go
+            // Create an empty File for the soon created File
             File photoFile = null;
             try {
                 photoFile = createImageFile();
             } catch (Exception e) {
-                // Error occurred while creating the File
+                // Error when creating the File
                 e.printStackTrace();
             }
-            // Continue only if the File was successfully created
+            // If File created
             if (photoFile != null) {
                 Uri photoURI = FileProvider.getUriForFile(this,
                         "com.example.inventorymanager.fileprovider",
                         photoFile);
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+                startActivityForResult(takePictureIntent, REQUEST);
             }
         }
     }
@@ -114,13 +105,13 @@ public class MainActivity extends AppCompatActivity {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(
-                imageFileName,  /* prefix */
-                ".jpg",         /* suffix */
-                storageDir      /* directory */
+        image = File.createTempFile(
+                imageFileName,  // prefix
+                ".jpg",   // suffix
+                storageDir      // directory
         );
 
-        // Save a file: path for use with ACTION_VIEW intents
+        // Save the file's path for use with ACTION_VIEW intents
         pathToFile = image.getAbsolutePath();
         return image;
     }
@@ -129,10 +120,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            Bitmap bitmap = BitmapFactory.decodeFile(pathToFile);
-            imageView.setImageBitmap(bitmap);
+        if (requestCode == REQUEST && resultCode == RESULT_OK) {
+
+            Bitmap myBitmap = BitmapFactory.decodeFile(image.getAbsolutePath());
+            imageView.setImageBitmap(myBitmap);
+
         }
 
     }
+    */
 }
