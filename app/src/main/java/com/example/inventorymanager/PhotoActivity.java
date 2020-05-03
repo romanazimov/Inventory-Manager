@@ -1,6 +1,7 @@
 package com.example.inventorymanager;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -22,6 +23,15 @@ public class PhotoActivity extends AppCompatActivity implements View.OnClickList
     private File image;
     private String pathToFile;
     private ImageView imageView;
+    private Uri photoURI;
+
+    PackageManager packageManager;
+    File storageDir;
+
+    PhotoActivity(PackageManager packageManager, File storageDir){
+        this.packageManager = packageManager;
+        this.storageDir = storageDir;
+    }
 
     @Override
     public void onClick(View view) {
@@ -29,10 +39,14 @@ public class PhotoActivity extends AppCompatActivity implements View.OnClickList
         dispatchTakePictureIntent();
     }
 
-    public void dispatchTakePictureIntent() {
+    public Uri getPhotoURI() {
+        return this.photoURI;
+    }
+
+    public Intent dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Make sure there's camera activity to handle the camera intent
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+        if (takePictureIntent.resolveActivity(packageManager) != null) {
             // Create an empty File for the soon created File
             File photoFile = null;
             try {
@@ -43,19 +57,20 @@ public class PhotoActivity extends AppCompatActivity implements View.OnClickList
             }
             // If File created
             if (photoFile != null) {
-                Uri photoURI = FileProvider.getUriForFile(this,
+                photoURI = FileProvider.getUriForFile(this,
                         "com.example.inventorymanager.fileprovider",
                         photoFile);
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                startActivityForResult(takePictureIntent, REQUEST);
+                return takePictureIntent;
             }
         }
+        return null;
     }
 
     public File createImageFile() throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
         String imageFileName = "JPEG_" + timeStamp + "_";
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+//        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         image = File.createTempFile(
                 imageFileName,  /* prefix */
                 ".jpg",   /* suffix */
