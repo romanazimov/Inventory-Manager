@@ -12,15 +12,9 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="140dp"
+        android:layout_marginTop="10dp"
         tools:context=".MainActivity">
 
-
-        <Button
-            android:id="@+id/buttonscan"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="SCAN" />
 
         <ScrollView
             android:layout_width="match_parent"
@@ -30,6 +24,12 @@
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical" >
+
+                <Button
+                    android:id="@+id/buttonscan"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="SCAN" />
 
                 <EditText
                     android:id="@+id/barcodetextview"
@@ -83,7 +83,8 @@
                         android:layout_height="wrap_content"
                         android:layout_centerHorizontal="true"
                         android:ems="10"
-                        android:hint="Picture1 url..." />
+                        android:hint="Picture1 url..."
+                        android:maxLines="1" />
 
                     <Button
                         android:id="@+id/firstPicButton"
@@ -100,5 +101,6 @@
                     android:rotation="90"/>
             </LinearLayout>
         </ScrollView>
+
     </LinearLayout>
 </RelativeLayout>

@@ -94,16 +94,27 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
+import com.bumptech.glide.Glide;
+import com.google.android.gms.tasks.Continuation;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 import java.io.File;
 import java.io.IOException;
@@ -111,13 +122,16 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity {
-    public static TextView resultTextView;
+    private StorageReference storageReference;
+    public static TextView resultTextView, firstPic;
     public static ImageView imageView;
-    private Button scanButton;
-    private Button firstPictureButton;
-    private final int REQUEST = 1;
-    private String pathToFile;
-    private File image;
+    private Button scanButton, firstPictureButton;
+
+    private final int IMAGE_REQUEST_ID = 1;
+
+    private UploadTask uploadTask;
+    private Uri imageUri;
+    String downloadUrl;
 
 
     @Override
@@ -129,12 +143,13 @@ public class MainActivity extends AppCompatActivity {
             requestPermissions(new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 2);
         }
 
-        resultTextView = findViewById(R.id.barcodetextview);
-        scanButton = findViewById(R.id.buttonscan);
+        resultTextView     = findViewById(R.id.barcodetextview);
+        scanButton         = findViewById(R.id.buttonscan);
         firstPictureButton = findViewById(R.id.firstPicButton);
-        imageView = findViewById(R.id.imageView);
+        imageView          = findViewById(R.id.imageView);
+        firstPic           = findViewById(R.id.firstPic);
 
-        //mStorageRef = FirebaseStorage.getInstance().getReference();
+        storageReference = FirebaseStorage.getInstance().getReference();
 
         //mProgressRef = new ProgressDialog(this);
 
@@ -145,76 +160,85 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        /*
         firstPictureButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(new Intent(getApplicationContext(), PhotoActivity.class));
+                requestImage();
             }
         });
-
-         */
-
-        firstPictureButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                dispatchTakePictureIntent();
-            }
-        });
-
     }
 
-    private void dispatchTakePictureIntent() {
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        // Make sure there's camera activity to handle the camera intent
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            // Create an empty File for the soon created File
-            File photoFile = null;
-            try {
-                photoFile = createImageFile();
-            } catch (Exception e) {
-                // Error when creating the File
-                e.printStackTrace();
-            }
-            // If File created
-            if (photoFile != null) {
-                Uri photoURI = FileProvider.getUriForFile(this,
-                        "com.example.inventorymanager.fileprovider",
-                        photoFile);
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                startActivityForResult(takePictureIntent, REQUEST);
-            }
+    private void requestImage(){
+        Intent intent = new Intent();
+        intent.setType("image/");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(intent, "Select Picture"), IMAGE_REQUEST_ID);
+    }
+
+
+    private void saveInFirebase() {
+        if (imageUri != null) {
+            final ProgressDialog progressDialog = new ProgressDialog(this);
+            progressDialog.setTitle("Please wait...");
+            progressDialog.show();
+
+            uploadTask.addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) { //onFailure
+                    Toast.makeText(MainActivity.this, "Image not uploaded", Toast.LENGTH_SHORT).show();
+                }
+            })
+                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) { //onProgress
+                            double progress = (100.0 * taskSnapshot.getBytesTransferred() / taskSnapshot.getTotalByteCount());
+                            progressDialog.setMessage("Saved" + (int) progress + "%");
+                            //selectBtn.setEnabled(true);
+                            //saveBtn.setEnabled(false);
+                            Toast.makeText(MainActivity.this, "Image uploaded", Toast.LENGTH_SHORT).show();
+                            Task<Uri> uri = uploadTask.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
+                                @Override
+                                public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task)/* throws Exception */ {
+                                    downloadUrl = storageReference.child("Images/").getDownloadUrl().toString();
+                                    System.out.println(downloadUrl);
+                                    return storageReference.child("img" + IMAGE_REQUEST_ID).getDownloadUrl();
+                                }
+                            })
+                                    .addOnCompleteListener(new OnCompleteListener<Uri>() {
+                                        @Override
+                                        public void onComplete(@NonNull Task<Uri> task) { //onSuccess
+                                            if (task.isSuccessful()) {
+                                                progressDialog.dismiss();
+                                                Toast.makeText(MainActivity.this, "Got product image url successfully", Toast.LENGTH_SHORT).show();
+                                                Log.i("DIRECT LINK", task.getResult().toString());
+                                                firstPic.setText(task.getResult().toString());
+                                                // https://bumptech.github.io/glide/
+                                                Glide.with(MainActivity.this).load(task.getResult()).into(imageView);
+                                            }
+                                        }
+                                    });
+                        }
+                    });
         }
-    }
-    private File createImageFile() throws IOException {
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
-        String imageFileName = "JPEG_" + timeStamp + "_";
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        image = File.createTempFile(
-                imageFileName,  // prefix
-                ".jpg",   // suffix
-                storageDir      // directory
-        );
-        // Save the file's path for use with ACTION_VIEW intents
-        pathToFile = image.getAbsolutePath();
-        return image;
-    }
-
-    private void galleryAddPic() {
-        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        File f = new File(pathToFile);
-        Uri contentUri = Uri.fromFile(f);
-        mediaScanIntent.setData(contentUri);
-        this.sendBroadcast(mediaScanIntent);
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST && resultCode == RESULT_OK) {
-            Bitmap myBitmap = BitmapFactory.decodeFile(image.getAbsolutePath());
-            imageView.setImageBitmap(myBitmap);
-            galleryAddPic();
+
+        if (requestCode == IMAGE_REQUEST_ID && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            imageUri = data.getData();
+            uploadTask = storageReference.child("img" + IMAGE_REQUEST_ID).putFile(imageUri);
+
+            try {
+                Bitmap bitmapImg = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
+                //imageView.setImageBitmap(bitmapImg);
+                saveInFirebase();
+                //selectBtn.setEnabled(false);
+                //saveBtn.setEnabled(true);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
