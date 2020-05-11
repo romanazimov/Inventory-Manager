@@ -145,13 +145,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
+        /*
         firstPictureButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 startActivity(new Intent(getApplicationContext(), PhotoActivity.class));
             }
         });
+
+         */
 
         firstPictureButton.setOnClickListener(new View.OnClickListener() {
             @Override
